@@ -61,17 +61,22 @@ main {
     transition: background-color 0.3s;
 }
 
-#audio-controls button {
-    background-color: #4e89ae;
-    color: white;
-}
-
 #startBtn {
     background-color: #4e89ae;
     color: white;
 }
 
 #stopBtn {
+    background-color: #e74c3c;
+    color: white;
+}
+
+#startRealtimeBtn {
+    background-color: #9b59b6;
+    color: white;
+}
+
+#stopRealtimeBtn {
     background-color: #e74c3c;
     color: white;
 }
@@ -108,7 +113,7 @@ video {
     margin-bottom: 1rem;
 }
 
-.result-placeholder, .solution-placeholder {
+.result-placeholder, .solution-placeholder, .realtime-result-placeholder {
     min-height: 100px;
     padding: 1rem;
     border-radius: 4px;
@@ -118,6 +123,11 @@ video {
 .result-placeholder {
     background-color: #e3f2fd;
     border: 1px dashed #4e89ae;
+}
+
+.realtime-result-placeholder {
+    background-color: #fff3e0;
+    border: 1px dashed #ff9800;
 }
 
 .solution-placeholder {
