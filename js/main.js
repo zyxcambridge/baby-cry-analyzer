@@ -209,7 +209,7 @@ class BabyCryAnalyzer {
                         modalities: ["text"],
                         input_audio_format: "pcm16",
                         input_audio_transcription: {
-                            model: "gummy-realtime-v1"
+                            model: "iic/speech_ctt_model"
                         }
                     }
                 };
@@ -227,11 +227,11 @@ class BabyCryAnalyzer {
             
             this.websocket.onerror = (error) => {
                 console.error("阿里云实时分析服务连接错误:", error);
-                this.realtimeResultDiv.innerHTML = "实时分析服务连接错误";
+                this.realtimeResultDiv.innerHTML = "实时分析服务连接错误: " + error.message;
             };
         } catch (error) {
             console.error("连接阿里云实时分析服务失败:", error);
-            this.realtimeResultDiv.innerHTML = "连接实时分析服务失败";
+            this.realtimeResultDiv.innerHTML = "连接实时分析服务失败: " + error.message;
         }
     }
     
@@ -296,6 +296,10 @@ class BabyCryAnalyzer {
             this.realtimeResultDiv.innerHTML = `
                 <p>${this.realtimeResults.join('')}</p>
             `;
+        } else if (data.type === "error") {
+            // 处理错误信息
+            console.error("阿里云服务返回错误:", data);
+            this.realtimeResultDiv.innerHTML = "服务错误: " + (data.error?.message || "未知错误");
         }
     }
     
