@@ -361,8 +361,10 @@ class BabyCryAnalyzer {
                 throw new Error("没有可用的视频流");
             }
             
-            // 创建媒体录制器
-            this.mediaRecorder = new MediaRecorder(this.videoStream);
+            // 创建媒体录制器，指定视频编码格式
+            this.mediaRecorder = new MediaRecorder(this.videoStream, {
+                mimeType: 'video/webm;codecs=vp9'
+            });
             const recordedChunks = [];
             
             // 监听数据可用事件
@@ -405,6 +407,7 @@ class BabyCryAnalyzer {
         } catch (error) {
             console.error("视频录制失败:", error);
             this.videoAnalysisResultDiv.innerHTML = "视频录制失败，请重试";
+            this.startVideoRecordingBtn.disabled = false;
         }
     }
     
@@ -495,7 +498,8 @@ class BabyCryAnalyzer {
             });
             
             if (!response.ok) {
-                throw new Error(`API请求失败: ${response.status} ${response.statusText}`);
+                const errorText = await response.text();
+                throw new Error(`API请求失败: ${response.status} ${response.statusText} - ${errorText}`);
             }
             
             const data = await response.json();
@@ -603,9 +607,12 @@ class BabyCryAnalyzer {
             const videoElement = document.createElement('video');
             videoElement.src = URL.createObjectURL(this.recordedVideoBlob);
             
-            // 等待视频加载完成
-            await new Promise((resolve) => {
+            // 等待视频加载完成，并添加超时机制
+            await new Promise((resolve, reject) => {
                 videoElement.addEventListener('loadedmetadata', resolve);
+                videoElement.addEventListener('error', reject);
+                // 添加5秒超时
+                setTimeout(() => reject(new Error('视频加载超时')), 5000);
             });
             
             // 创建canvas来捕获视频帧
@@ -617,9 +624,12 @@ class BabyCryAnalyzer {
             // 在视频中间时间点捕获一帧
             videoElement.currentTime = videoElement.duration / 2;
             
-            // 等待时间更新
-            await new Promise((resolve) => {
+            // 等待时间更新，并添加超时机制
+            await new Promise((resolve, reject) => {
                 videoElement.addEventListener('seeked', resolve);
+                videoElement.addEventListener('error', reject);
+                // 添加5秒超时
+                setTimeout(() => reject(new Error('视频帧提取超时')), 5000);
             });
             
             // 绘制视频帧到canvas
@@ -628,11 +638,15 @@ class BabyCryAnalyzer {
             // 将图像转换为blob
             const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.8));
             
+            // 清理资源
+            URL.revokeObjectURL(videoUrl);
+            
             // 发送到阿里云视觉分析服务
             await this.sendToAliyunVLModel(blob);
         } catch (error) {
             console.error("视频分析失败:", error);
             this.videoAnalysisResultDiv.innerHTML = "视频分析失败，请重试";
+            this.startVideoRecordingBtn.disabled = false;
         }
     }
     
@@ -686,7 +700,8 @@ class BabyCryAnalyzer {
             });
             
             if (!response.ok) {
-                throw new Error(`API请求失败: ${response.status} ${response.statusText}`);
+                const errorText = await response.text();
+                throw new Error(`API请求失败: ${response.status} ${response.statusText} - ${errorText}`);
             }
             
             const data = await response.json();
@@ -702,6 +717,7 @@ class BabyCryAnalyzer {
                 
                 // 综合分析结果
                 this.combineAnalysisResults();
+            this.startVideoRecordingBtn.disabled = false;
             } else {
                 throw new Error("API返回数据格式不正确");
             }
