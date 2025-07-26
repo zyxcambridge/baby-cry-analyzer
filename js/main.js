@@ -23,8 +23,8 @@ class BabyCryAnalyzer {
         this.recordingTimer = null;
         
         // DOM元素
-        this.startBtn = document.getElementById('startBtn');
-        this.stopBtn = document.getElementById('stopBtn');
+        this.toggleRecordingBtn = document.getElementById('toggleRecordingBtn');
+        this.toggleRealtimeBtn = document.getElementById('toggleRealtimeBtn');
         this.startRealtimeBtn = document.getElementById('startRealtimeBtn');
         this.stopRealtimeBtn = document.getElementById('stopRealtimeBtn');
         this.startVideoBtn = document.getElementById('startVideoBtn');
@@ -44,8 +44,8 @@ class BabyCryAnalyzer {
     }
     
     bindEvents() {
-        this.startBtn.addEventListener('click', () => this.startRecording());
-        this.stopBtn.addEventListener('click', () => this.stopRecording());
+        this.toggleRecordingBtn.addEventListener('click', () => this.toggleRecording());
+        this.toggleRealtimeBtn.addEventListener('click', () => this.toggleRealtimeAnalysis());
         this.startRealtimeBtn.addEventListener('click', () => this.startRealtimeAnalysis());
         this.stopRealtimeBtn.addEventListener('click', () => this.stopRealtimeAnalysis());
         this.startVideoBtn.addEventListener('click', () => this.startVideo());
@@ -85,9 +85,10 @@ class BabyCryAnalyzer {
             this.isRecording = true;
             
             // 更新UI状态
-            this.startBtn.disabled = true;
-            this.stopBtn.disabled = false;
-            this.startRealtimeBtn.disabled = true;
+            // 更新UI状态
+            this.toggleRecordingBtn.textContent = "停止录音";
+            this.toggleRecordingBtn.classList.add("active");
+            this.toggleRealtimeBtn.disabled = true;
             
             this.resultDiv.innerHTML = "正在录制2分钟音频...";
             
@@ -110,9 +111,9 @@ class BabyCryAnalyzer {
             this.isRecording = false;
             
             // 更新UI状态
-            this.startBtn.disabled = false;
-            this.stopBtn.disabled = true;
-            this.startRealtimeBtn.disabled = false;
+            this.toggleRecordingBtn.textContent = "开始录音";
+            this.toggleRecordingBtn.classList.remove("active");
+            this.toggleRealtimeBtn.disabled = false;
         }
     }
     
@@ -182,9 +183,9 @@ class BabyCryAnalyzer {
         }
         
         // 更新UI状态
-        this.startRealtimeBtn.disabled = false;
-        this.stopRealtimeBtn.disabled = true;
-        this.startBtn.disabled = false;
+        this.toggleRealtimeBtn.textContent = "开始实时分析";
+        this.toggleRealtimeBtn.classList.remove("active");
+        this.toggleRecordingBtn.disabled = false;
         
         // 综合分析结果
         this.combineAnalysisResults();

@@ -61,24 +61,22 @@ main {
     transition: background-color 0.3s;
 }
 
-#startBtn {
+#toggleRecordingBtn {
     background-color: #4e89ae;
     color: white;
 }
 
-#stopBtn {
-    background-color: #e74c3c;
-    color: white;
-}
-
-#startRealtimeBtn {
+#toggleRealtimeBtn {
     background-color: #9b59b6;
     color: white;
 }
 
-#stopRealtimeBtn {
-    background-color: #e74c3c;
-    color: white;
+.recording.active {
+    background-color: #e74c3c !important;
+}
+
+.realtime.active {
+    background-color: #e74c3c !important;
 }
 
 #startVideoBtn {
@@ -93,11 +91,6 @@ main {
 
 #startVideoRecordingBtn {
     background-color: #f39c12;
-    color: white;
-}
-
-#analyzeVideoBtn {
-    background-color: #3498db;
     color: white;
 }
 
@@ -145,7 +138,7 @@ video {
     margin-bottom: 2rem;
 }
 
-.analysis-results h2, .cry-types-info h2 {
+.analysis-results h2, .cry-types-info h2, .instructions h2 {
     color: #2c3e50;
     margin-bottom: 1rem;
 }
@@ -177,24 +170,20 @@ video {
     border: 1px dashed #27ae60;
 }
 
-.cry-types-info {
+.cry-types-info, .instructions {
     background-color: white;
     padding: 1.5rem;
     border-radius: 8px;
     box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    margin-bottom: 2rem;
 }
 
-.cry-types-info ul {
-    list-style-type: none;
+.cry-types-info ul, .instructions ol {
+    margin-left: 1.5rem;
 }
 
-.cry-types-info li {
+.cry-types-info li, .instructions li {
     padding: 0.5rem 0;
-    border-bottom: 1px solid #eee;
-}
-
-.cry-types-info li:last-child {
-    border-bottom: none;
 }
 
 footer {
