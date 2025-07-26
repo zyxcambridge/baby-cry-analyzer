@@ -16,6 +16,8 @@ class BabyCryAnalyzer {
         this.capturedVideoFrame = null;
         this.videoAnalysisInterval = null;
         this.behaviorAnalysisEnabled = false;
+        this.audioAnalysisResult = null;
+        this.behaviorAnalysisResults = [];
         
         // DOM元素
         this.startBtn = document.getElementById('startBtn');
@@ -78,7 +80,14 @@ class BabyCryAnalyzer {
             this.stopBtn.disabled = false;
             this.startRealtimeBtn.disabled = true;
             
-            this.resultDiv.innerHTML = "正在录制音频...";
+            this.resultDiv.innerHTML = "正在录制2分钟音频...";
+            
+            // 2分钟后自动停止录制
+            setTimeout(() => {
+                if (this.isRecording) {
+                    this.stopRecording();
+                }
+            }, 120000); // 2分钟
         } catch (error) {
             console.error("获取音频权限失败:", error);
             this.resultDiv.innerHTML = "无法访问麦克风，请检查权限设置";
@@ -526,6 +535,9 @@ class BabyCryAnalyzer {
             
             // 发送到阿里云视觉分析服务
             await this.sendToAliyunVLModel(blob);
+            
+            // 综合分析结果
+            this.combineAnalysisResults();
         } catch (error) {
             console.error("视频分析失败:", error);
             this.videoAnalysisResultDiv.innerHTML = "视频分析失败，请重试";
@@ -771,14 +783,13 @@ document.addEventListener('DOMContentLoaded', () => {
     resultDiv.innerHTML = `
         <h3>使用说明</h3>
         <ol>
-            <li>点击"开始录音"按钮开始录制宝宝哭声</li>
-            <li>让宝宝自然哭泣，录制几秒钟音频</li>
-            <li>点击"停止录音"按钮结束录制并开始分析</li>
+            <li>点击"开始录音"按钮开始录制2分钟宝宝哭声</li>
+            <li>让宝宝自然哭泣，录制完整的2分钟音频</li>
             <li>或者点击"开始实时分析"进行实时哭声分析</li>
             <li>点击"开启摄像头"打开视频监控（默认使用后置摄像头）</li>
-            <li>点击"分析视频"对当前视频帧进行分析</li>
+            <li>点击"分析视频"对当前视频帧进行哭声分析</li>
             <li>开启摄像头后，系统会每分钟自动分析宝宝行为状态</li>
-            <li>系统将综合分析结果并提供解决方案</li>
+            <li>系统将综合所有分析结果并提供解决方案</li>
         </ol>
         <p>为了获得最佳分析效果，请在光线充足且安静的环境中使用</p>
     `;

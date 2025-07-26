@@ -1,4 +1,4 @@
-# 婴儿哭声分析器架构说明
+# 婴儿哭声与行为分析器架构说明
 
 ## 架构图（Architecture Diagram）
 
@@ -9,26 +9,35 @@ graph TD
     B --> D[视频处理模块]
     B --> E[哭声分析模块]
     B --> F[实时分析模块]
+    B --> G[行为分析模块]
     
-    C --> G[音频录制]
-    C --> H[音频特征提取]
+    C --> H[2分钟音频录制]
+    C --> I[音频特征提取]
     
-    E --> I[本地哭声分类]
-    E --> J[解决方案生成]
+    D --> J[视频流处理]
+    D --> K[行为状态分析]
+    D --> L[视频哭声分析]
     
-    F --> K[WebSocket连接管理]
-    F --> L[阿里云API集成]
-    F --> M[实时结果处理]
+    E --> M[本地哭声分类]
+    E --> N[解决方案生成]
     
-    D --> N[视频流处理]
+    F --> O[WebSocket连接管理]
+    F --> P[阿里云实时API集成]
+    F --> Q[实时结果处理]
     
-    H --> O[MFCC特征]
-    H --> P[基频分析]
-    H --> Q[响度分析]
+    G --> R[定时行为分析]
+    G --> S[行为状态识别]
+    G --> T[弹框提示系统]
     
-    L --> R[阿里云Qwen-Omni实时模型]
+    I --> U[MFCC特征]
+    I --> V[基频分析]
+    I --> W[响度分析]
     
-    I --> S[哭声类型识别]
+    P --> X[阿里云Qwen-Omni实时模型]
+    L --> Y[阿里云Qwen-VL-Max模型]
+    K --> Z[阿里云Qwen-VL-Max模型]
+    
+    M --> AA[哭声类型识别]
     
     subgraph 前端组件
         A
@@ -45,19 +54,28 @@ graph TD
         L
         M
         N
-    end
-    
-    subgraph 音频特征处理
         O
         P
         Q
+        R
+        S
+        T
     end
     
-    subgraph 后端服务
-        R
+    subgraph 音频特征处理
+        U
+        V
+        W
+    end
+    
+    subgraph 云端AI服务
+        X
+        Y
+        Z
     end
     
     subgraph 分析引擎
+        AA
         S
     end
 ```
@@ -68,7 +86,7 @@ graph TD
 graph TD
     A[用户点击开始录音] --> B[getUserMedia请求音频权限]
     B --> C[创建MediaRecorder实例]
-    C --> D[开始音频录制]
+    C --> D[开始2分钟音频录制]
     
     E[用户点击停止录音] --> F[停止MediaRecorder]
     F --> G[获取录制的音频Blob]
@@ -84,7 +102,7 @@ graph TD
     P --> Q[encodeToBase64]
     Q --> R[WebSocket发送音频数据]
     
-    R --> S[阿里云API处理]
+    R --> S[阿里云实时API处理]
     S --> T[WebSocket接收响应]
     T --> U[handleAliyunResponse]
     U --> V[更新实时分析结果]
@@ -93,7 +111,25 @@ graph TD
     X --> Y[combineAnalysisResults]
     Y --> Z[综合生成最终结果]
     
-    subgraph 录音分析流程
+    AA[用户点击开启摄像头] --> AB[getUserMedia请求视频权限]
+    AB --> AC[设置后置摄像头优先]
+    AC --> AD[开始视频流]
+    AD --> AE[显示视频画面]
+    
+    AF[定时器触发行为分析] --> AG[捕获当前视频帧]
+    AG --> AH[转换为图像数据]
+    AH --> AI[调用行为分析API]
+    AI --> AJ[显示弹框提示]
+    
+    AK[用户点击分析视频] --> AL[捕获当前视频帧]
+    AL --> AM[转换为图像数据]
+    AM --> AN[调用哭声分析API]
+    AN --> AO[更新视频分析结果]
+    
+    AP[综合分析模块] --> AQ[整合三种分析结果]
+    AQ --> AR[生成最终解决方案]
+    
+    subgraph 2分钟音频分析流程
         A
         B
         C
@@ -124,7 +160,30 @@ graph TD
         Y
         Z
     end
-```
+    
+    subgraph 视频处理流程
+        AA
+        AB
+        AC
+        AD
+        AE
+        AF
+        AG
+        AH
+        AI
+        AJ
+        AK
+        AL
+        AM
+        AN
+        AO
+    end
+    
+    subgraph 综合分析流程
+        AP
+        AQ
+        AR
+    end
 
 ## 数据流向图（Data Flow Diagram）
 
