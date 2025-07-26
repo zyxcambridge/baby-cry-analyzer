@@ -9,75 +9,34 @@
 <body>
     <header>
         <h1>婴儿哭声与行为分析器</h1>
-        <p>通过2分钟的音频记录、实时婴儿哭声和视频分析判断宝宝哭声和动作行为的原因并提供解决方案</p>
+        <p>通过音频记录、实时婴儿哭声和视频分析判断宝宝哭声和动作行为的原因并提供解决方案</p>
     </header>
 
     <main>
         <section class="controls">
-            <div class="video-controls">
-                <video id="video" width="320" height="240" autoplay></video>
-                <div class="camera-controls">
-                    <select id="cameraSelect">
-                        <option value="environment">后置摄像头</option>
-                        <option value="user">前置摄像头</option>
-                    </select>
-                    <button id="startRecordingBtn">开始录像</button>
-                </div>
-                <div id="recordingTimer" class="recording-timer" style="display: none;">录像中... <span id="timerCount">5</span>s</div>
+            <div class="control-group">
+                <h2>2分钟音频记录分析</h2>
+                <button id="audioAnalysisBtn">开始音频分析</button>
+                <div id="audioResult" class="result-text">等待音频分析结果...</div>
             </div>
             
-            <div class="audio-controls">
-                <button id="toggleRecordingBtn">开始录音</button>
-                <button id="toggleRealtimeBtn">开始实时分析</button>
+            <div class="control-group">
+                <h2>实时婴儿哭声分析</h2>
+                <button id="realtimeAnalysisBtn">开始实时分析</button>
+                <div id="realtimeResult" class="result-text">实时分析结果将显示在这里</div>
+            </div>
+            
+            <div class="control-group">
+                <h2>婴儿视频行为分析</h2>
+                <button id="videoAnalysisBtn">开始视频分析</button>
+                <div id="videoResult" class="result-text">视频分析结果将显示在这里</div>
+                <video id="video" width="320" height="240" autoplay style="display: none;"></video>
             </div>
         </section>
 
-        <section class="analysis-results">
-            <h2>分析结果</h2>
-            <div id="result" class="result-placeholder">
-                等待分析结果...
-            </div>
-            
-            <div id="realtime-result-container">
-                <h3>实时分析结果</h3>
-                <div id="realtime-result" class="realtime-result-placeholder">
-                    实时分析结果将显示在这里
-                </div>
-            </div>
-            
-            <div id="video-analysis-result" class="video-analysis-placeholder">
-                视频分析结果将显示在这里
-            </div>
-            
-            <div id="solution" class="solution-placeholder">
-                解决方案将会显示在这里
-            </div>
-        </section>
-
-        <section class="cry-types-info">
-            <h2>婴儿哭声类型参考</h2>
-            <ul>
-                <li><strong>饥饿哭声：</strong>节奏规律，由低到高，持续时间较长</li>
-                <li><strong>困倦哭声：</strong>断断续续，伴有打哈欠、揉眼睛等动作</li>
-                <li><strong>不适哭声：</strong>突然爆发，声音尖锐，双腿向上弯曲</li>
-                <li><strong>疼痛哭声：</strong>突然开始，大声刺耳，常伴有屏气</li>
-                <li><strong>尿湿哭声：</strong>不太连续，音调高低交替</li>
-            </ul>
-        </section>
-        
-        <section class="instructions">
-            <h2>使用说明</h2>
-            <ol>
-                <li>通过下拉菜单选择前置或后置摄像头</li>
-                <li>点击"开始录像"打开视频监控并自动开始录像</li>
-                <li>开启摄像头后，系统会每分钟自动分析宝宝行为状态</li>
-                <li>再次点击"停止录像"按钮停止录像并关闭摄像头</li>
-                <li>点击"开始录音"按钮开始录制2分钟宝宝哭声，再次点击停止录音</li>
-                <li>让宝宝自然哭泣，录制完整的2分钟音频</li>
-                <li>点击"开始实时分析"进行实时哭声分析，再次点击停止实时分析</li>
-                <li>系统将综合所有分析结果并提供解决方案</li>
-            </ol>
-            <p>为了获得最佳分析效果，请在光线充足且安静的环境中使用</p>
+        <section class="solution-section">
+            <h2>综合解决方案</h2>
+            <div id="solutionResult" class="solution-text">综合分析结果将显示在这里</div>
         </section>
     </main>
 

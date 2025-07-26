@@ -35,21 +35,25 @@ main {
 
 .controls {
     display: flex;
-    flex-wrap: wrap;
+    flex-direction: column;
     gap: 2rem;
     margin-bottom: 2rem;
+}
+
+.control-group {
     background-color: white;
     padding: 1.5rem;
     border-radius: 8px;
     box-shadow: 0 2px 5px rgba(0,0,0,0.1);
 }
 
-.audio-controls, .video-controls {
-    flex: 1;
-    min-width: 300px;
+.control-group h2 {
+    color: #2c3e50;
+    margin-bottom: 1rem;
+    font-size: 1.3rem;
 }
 
-.audio-controls button, .video-controls button {
+button {
     display: block;
     width: 100%;
     padding: 0.8rem;
@@ -61,13 +65,18 @@ main {
     transition: background-color 0.3s;
 }
 
-#toggleRecordingBtn {
+#audioAnalysisBtn {
     background-color: #4e89ae;
     color: white;
 }
 
-#toggleRealtimeBtn {
+#realtimeAnalysisBtn {
     background-color: #9b59b6;
+    color: white;
+}
+
+#videoAnalysisBtn {
+    background-color: #27ae60;
     color: white;
 }
 
@@ -79,31 +88,18 @@ main {
     background-color: #e74c3c !important;
 }
 
-#startVideoBtn {
-    background-color: #27ae60;
-    color: white;
-}
-
-#stopVideoBtn {
-    background-color: #e74c3c;
-    color: white;
-}
-
-#startVideoRecordingBtn {
-    background-color: #f39c12;
-    color: white;
-}
-
-.camera-controls {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-}
-
-.camera-controls select {
-    padding: 0.5rem;
+.result-text, .solution-text {
+    min-height: 80px;
+    padding: 1rem;
     border-radius: 4px;
-    border: 1px solid #ddd;
+    background-color: #f8f9fa;
+    border: 1px solid #e9ecef;
+}
+
+.solution-text {
+    background-color: #e8f5e9;
+    border: 1px dashed #27ae60;
+    min-height: 120px;
 }
 
 button:disabled {
@@ -117,73 +113,7 @@ video {
     height: auto;
     border: 1px solid #ddd;
     border-radius: 4px;
-    margin-bottom: 1rem;
-}
-
-.recording-timer {
-    text-align: center;
-    padding: 0.5rem;
-    background-color: #f39c12;
-    color: white;
-    border-radius: 4px;
-    font-weight: bold;
-    margin-top: 0.5rem;
-}
-
-.analysis-results {
-    background-color: white;
-    padding: 1.5rem;
-    border-radius: 8px;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-    margin-bottom: 2rem;
-}
-
-.analysis-results h2, .cry-types-info h2, .instructions h2 {
-    color: #2c3e50;
-    margin-bottom: 1rem;
-}
-
-.result-placeholder, .solution-placeholder, .realtime-result-placeholder, .video-analysis-placeholder {
-    min-height: 100px;
-    padding: 1rem;
-    border-radius: 4px;
-    margin-bottom: 1rem;
-}
-
-.result-placeholder {
-    background-color: #e3f2fd;
-    border: 1px dashed #4e89ae;
-}
-
-.realtime-result-placeholder {
-    background-color: #fff3e0;
-    border: 1px dashed #ff9800;
-}
-
-.video-analysis-placeholder {
-    background-color: #fce4ec;
-    border: 1px dashed #e91e63;
-}
-
-.solution-placeholder {
-    background-color: #e8f5e9;
-    border: 1px dashed #27ae60;
-}
-
-.cry-types-info, .instructions {
-    background-color: white;
-    padding: 1.5rem;
-    border-radius: 8px;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-    margin-bottom: 2rem;
-}
-
-.cry-types-info ul, .instructions ol {
-    margin-left: 1.5rem;
-}
-
-.cry-types-info li, .instructions li {
-    padding: 0.5rem 0;
+    margin-top: 1rem;
 }
 
 footer {
@@ -195,10 +125,6 @@ footer {
 }
 
 @media (max-width: 768px) {
-    .controls {
-        flex-direction: column;
-    }
-    
     main {
         padding: 0 0.5rem;
     }
