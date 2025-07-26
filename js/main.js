@@ -9,6 +9,8 @@ class BabyCryAnalyzer {
         this.audioChunks = [];
         this.isRecording = false;
         this.isRealtimeAnalyzing = false;
+        this.isCameraOn = false;
+        this.isVideoRecording = false;
         this.websocket = null;
         this.audioProcessor = null;
         this.realtimeResults = [];
@@ -21,15 +23,12 @@ class BabyCryAnalyzer {
         this.mediaRecorder = null;
         this.recordedVideoBlob = null;
         this.recordingTimer = null;
+        this.videoRecordingTimeout = null;
         
         // DOM元素
+        this.toggleCameraBtn = document.getElementById('toggleCameraBtn');
         this.toggleRecordingBtn = document.getElementById('toggleRecordingBtn');
         this.toggleRealtimeBtn = document.getElementById('toggleRealtimeBtn');
-        this.startRealtimeBtn = document.getElementById('startRealtimeBtn');
-        this.stopRealtimeBtn = document.getElementById('stopRealtimeBtn');
-        this.startVideoBtn = document.getElementById('startVideoBtn');
-        this.stopVideoBtn = document.getElementById('stopVideoBtn');
-        this.startVideoRecordingBtn = document.getElementById('startVideoRecordingBtn');
         this.cameraSelect = document.getElementById('cameraSelect');
         this.video = document.getElementById('video');
         this.resultDiv = document.getElementById('result');
@@ -44,13 +43,9 @@ class BabyCryAnalyzer {
     }
     
     bindEvents() {
+        this.toggleCameraBtn.addEventListener('click', () => this.toggleCamera());
         this.toggleRecordingBtn.addEventListener('click', () => this.toggleRecording());
         this.toggleRealtimeBtn.addEventListener('click', () => this.toggleRealtimeAnalysis());
-        this.startRealtimeBtn.addEventListener('click', () => this.startRealtimeAnalysis());
-        this.stopRealtimeBtn.addEventListener('click', () => this.stopRealtimeAnalysis());
-        this.startVideoBtn.addEventListener('click', () => this.startVideo());
-        this.stopVideoBtn.addEventListener('click', () => this.stopVideo());
-        this.startVideoRecordingBtn.addEventListener('click', () => this.startVideoRecording());
         this.cameraSelect.addEventListener('change', () => this.handleCameraChange());
     }
     
@@ -356,13 +351,91 @@ class BabyCryAnalyzer {
         }
     }
     
+    async toggleCamera() {
+        if (this.isCameraOn) {
+            this.stopCamera();
+        } else {
+            await this.startCamera();
+        }
+    }
+    
+    async startCamera() {
+        try {
+            // 获取当前选择的摄像头类型
+            const facingMode = this.cameraSelect.value;
+            
+            // 设置约束条件
+            const constraints = {
+                video: {
+                    facingMode: { exact: facingMode },
+                    width: { ideal: 1280 },
+                    height: { ideal: 720 }
+                },
+                audio: false
+            };
+            
+            this.videoStream = await navigator.mediaDevices.getUserMedia(constraints);
+            
+            this.video.srcObject = this.videoStream;
+            this.isCameraOn = true;
+            
+            // 更新UI状态
+            this.toggleCameraBtn.textContent = "关闭摄像头";
+            this.toggleCameraBtn.classList.add("active");
+            
+            // 启用行为分析功能
+            this.behaviorAnalysisEnabled = true;
+            this.startBehaviorAnalysis();
+            
+            // 自动开始录像
+            await this.startVideoRecording();
+        } catch (error) {
+            console.error("获取视频权限失败:", error);
+            this.resultDiv.innerHTML = "无法访问摄像头，请检查权限设置";
+        }
+    }
+    
+    async stopCamera() {
+        // 停止录像
+        if (this.mediaRecorder && this.isVideoRecording) {
+            this.mediaRecorder.stop();
+            if (this.videoRecordingTimeout) {
+                clearTimeout(this.videoRecordingTimeout);
+                this.videoRecordingTimeout = null;
+            }
+        }
+        
+        // 清理录像计时器
+        if (this.recordingTimer) {
+            clearInterval(this.recordingTimer);
+            this.recordingTimer = null;
+        }
+        
+        // 停止视频流
+        if (this.videoStream) {
+            this.videoStream.getTracks().forEach(track => track.stop());
+            this.video.srcObject = null;
+        }
+        
+        this.isCameraOn = false;
+        this.isVideoRecording = false;
+        
+        // 更新UI状态
+        this.toggleCameraBtn.textContent = "开启摄像头";
+        this.toggleCameraBtn.classList.remove("active");
+        this.recordingTimerDiv.style.display = 'none';
+        
+        // 停止行为分析
+        this.stopBehaviorAnalysis();
+    }
+    
     async startVideoRecording() {
         try {
             if (!this.videoStream) {
                 throw new Error("没有可用的视频流");
             }
             
-            // 创建媒体录制器，指定视频编码格式
+            // 创建媒体录制器
             this.mediaRecorder = new MediaRecorder(this.videoStream, {
                 mimeType: 'video/webm;codecs=vp9'
             });
@@ -376,21 +449,20 @@ class BabyCryAnalyzer {
             };
             
             // 监听停止事件
-            this.mediaRecorder.onstop = () => {
+            this.mediaRecorder.onstop = async () => {
                 this.recordedVideoBlob = new Blob(recordedChunks, { type: 'video/webm' });
-                this.analyzeRecordedVideo();
+                await this.analyzeRecordedVideo();
+                this.isVideoRecording = false;
             };
             
             // 开始录制
             this.mediaRecorder.start();
+            this.isVideoRecording = true;
             
             // 显示录制计时器
             this.recordingTimerDiv.style.display = 'block';
             let count = 5;
             this.timerCountSpan.textContent = count;
-            
-            // 更新按钮状态
-            this.startVideoRecordingBtn.disabled = true;
             
             // 每秒更新计时器
             this.recordingTimer = setInterval(() => {
@@ -400,15 +472,27 @@ class BabyCryAnalyzer {
                 if (count <= 0) {
                     clearInterval(this.recordingTimer);
                     this.recordingTimer = null;
-                    this.mediaRecorder.stop();
                     this.recordingTimerDiv.style.display = 'none';
-                    this.startVideoRecordingBtn.disabled = false;
                 }
             }, 1000);
+            
+            // 5秒后自动停止录制
+            this.videoRecordingTimeout = setTimeout(() => {
+                if (this.mediaRecorder && this.isVideoRecording) {
+                    this.mediaRecorder.stop();
+                }
+            }, 5000);
         } catch (error) {
             console.error("视频录制失败:", error);
             this.videoAnalysisResultDiv.innerHTML = "视频录制失败，请重试";
-            this.startVideoRecordingBtn.disabled = false;
+        }
+    }
+    
+    handleCameraChange() {
+        // 如果摄像头正在运行，重启以应用新的设置
+        if (this.isCameraOn) {
+            this.toggleCamera();
+            setTimeout(() => this.toggleCamera(), 500);
         }
     }
     
