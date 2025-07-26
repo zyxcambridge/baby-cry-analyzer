@@ -86,9 +86,31 @@ main {
     color: white;
 }
 
-#analyzeVideoBtn {
+#stopVideoBtn {
+    background-color: #e74c3c;
+    color: white;
+}
+
+#startVideoRecordingBtn {
     background-color: #f39c12;
     color: white;
+}
+
+#analyzeVideoBtn {
+    background-color: #3498db;
+    color: white;
+}
+
+.camera-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.camera-controls select {
+    padding: 0.5rem;
+    border-radius: 4px;
+    border: 1px solid #ddd;
 }
 
 button:disabled {
@@ -103,6 +125,16 @@ video {
     border: 1px solid #ddd;
     border-radius: 4px;
     margin-bottom: 1rem;
+}
+
+.recording-timer {
+    text-align: center;
+    padding: 0.5rem;
+    background-color: #f39c12;
+    color: white;
+    border-radius: 4px;
+    font-weight: bold;
+    margin-top: 0.5rem;
 }
 
 .analysis-results {

@@ -23,8 +23,16 @@
             
             <div class="video-controls">
                 <video id="video" width="320" height="240" autoplay></video>
-                <button id="startVideoBtn">开启摄像头</button>
-                <button id="analyzeVideoBtn" disabled>分析视频</button>
+                <div class="camera-controls">
+                    <select id="cameraSelect">
+                        <option value="environment">后置摄像头</option>
+                        <option value="user">前置摄像头</option>
+                    </select>
+                    <button id="startVideoBtn">开启摄像头</button>
+                    <button id="stopVideoBtn" disabled>关闭摄像头</button>
+                    <button id="startVideoRecordingBtn" disabled>开始录像</button>
+                </div>
+                <div id="recordingTimer" class="recording-timer" style="display: none;">录像中... <span id="timerCount">5</span>s</div>
             </div>
         </section>
 

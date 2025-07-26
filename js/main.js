@@ -18,19 +18,26 @@ class BabyCryAnalyzer {
         this.behaviorAnalysisEnabled = false;
         this.audioAnalysisResult = null;
         this.behaviorAnalysisResults = [];
+        this.mediaRecorder = null;
+        this.recordedVideoBlob = null;
+        this.recordingTimer = null;
         
-        // DOM元素
+        // DOM元素已更新
         this.startBtn = document.getElementById('startBtn');
         this.stopBtn = document.getElementById('stopBtn');
         this.startRealtimeBtn = document.getElementById('startRealtimeBtn');
         this.stopRealtimeBtn = document.getElementById('stopRealtimeBtn');
         this.startVideoBtn = document.getElementById('startVideoBtn');
-        this.analyzeVideoBtn = document.getElementById('analyzeVideoBtn');
+        this.stopVideoBtn = document.getElementById('stopVideoBtn');
+        this.startVideoRecordingBtn = document.getElementById('startVideoRecordingBtn');
+        this.cameraSelect = document.getElementById('cameraSelect');
         this.video = document.getElementById('video');
         this.resultDiv = document.getElementById('result');
         this.realtimeResultDiv = document.getElementById('realtime-result');
         this.videoAnalysisResultDiv = document.getElementById('video-analysis-result');
         this.solutionDiv = document.getElementById('solution');
+        this.recordingTimerDiv = document.getElementById('recordingTimer');
+        this.timerCountSpan = document.getElementById('timerCount');
         
         // 绑定事件
         this.bindEvents();
@@ -42,7 +49,9 @@ class BabyCryAnalyzer {
         this.startRealtimeBtn.addEventListener('click', () => this.startRealtimeAnalysis());
         this.stopRealtimeBtn.addEventListener('click', () => this.stopRealtimeAnalysis());
         this.startVideoBtn.addEventListener('click', () => this.startVideo());
-        this.analyzeVideoBtn.addEventListener('click', () => this.analyzeVideoFrame());
+        this.stopVideoBtn.addEventListener('click', () => this.stopVideo());
+        this.startVideoRecordingBtn.addEventListener('click', () => this.startVideoRecording());
+        this.cameraSelect.addEventListener('change', () => this.handleCameraChange());
     }
     
     async startRecording() {
@@ -699,12 +708,111 @@ class BabyCryAnalyzer {
         }, 2000);
     }
     
+    async startVideoRecording() {
+        try {
+            if (!this.videoStream) {
+                throw new Error("没有可用的视频流");
+            }
+            
+            // 创建媒体录制器
+            this.mediaRecorder = new MediaRecorder(this.videoStream);
+            const recordedChunks = [];
+            
+            // 监听数据可用事件
+            this.mediaRecorder.ondataavailable = (event) => {
+                if (event.data.size > 0) {
+                    recordedChunks.push(event.data);
+                }
+            };
+            
+            // 监听停止事件
+            this.mediaRecorder.onstop = () => {
+                this.recordedVideoBlob = new Blob(recordedChunks, { type: 'video/webm' });
+                this.analyzeRecordedVideo();
+            };
+            
+            // 开始录制
+            this.mediaRecorder.start();
+            
+            // 显示录制计时器
+            this.recordingTimerDiv.style.display = 'block';
+            let count = 5;
+            this.timerCountSpan.textContent = count;
+            
+            // 更新按钮状态
+            this.startVideoRecordingBtn.disabled = true;
+            
+            // 每秒更新计时器
+            this.recordingTimer = setInterval(() => {
+                count--;
+                this.timerCountSpan.textContent = count;
+                
+                if (count <= 0) {
+                    clearInterval(this.recordingTimer);
+                    this.recordingTimer = null;
+                    this.mediaRecorder.stop();
+                    this.recordingTimerDiv.style.display = 'none';
+                    this.startVideoRecordingBtn.disabled = false;
+                }
+            }, 1000);
+        } catch (error) {
+            console.error("视频录制失败:", error);
+            this.videoAnalysisResultDiv.innerHTML = "视频录制失败，请重试";
+        }
+    }
+    
+    async analyzeRecordedVideo() {
+        if (!this.recordedVideoBlob) {
+            this.videoAnalysisResultDiv.innerHTML = "没有录制的视频";
+            return;
+        }
+        
+        this.videoAnalysisResultDiv.innerHTML = "正在分析录制的视频...";
+        
+        try {
+            // 创建一个视频元素来获取视频帧
+            const videoElement = document.createElement('video');
+            videoElement.src = URL.createObjectURL(this.recordedVideoBlob);
+            
+            // 等待视频加载完成
+            await new Promise((resolve) => {
+                videoElement.addEventListener('loadedmetadata', resolve);
+            });
+            
+            // 创建canvas来捕获视频帧
+            const canvas = document.createElement('canvas');
+            canvas.width = videoElement.videoWidth;
+            canvas.height = videoElement.videoHeight;
+            const ctx = canvas.getContext('2d');
+            
+            // 在视频中间时间点捕获一帧
+            videoElement.currentTime = videoElement.duration / 2;
+            
+            // 等待时间更新
+            await new Promise((resolve) => {
+                videoElement.addEventListener('seeked', resolve);
+            });
+            
+            // 绘制视频帧到canvas
+            ctx.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
+            
+            // 将图像转换为blob
+            const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.8));
+            
+            // 发送到阿里云视觉分析服务
+            await this.sendToAliyunVLModel(blob);
+        } catch (error) {
+            console.error("视频分析失败:", error);
+            this.videoAnalysisResultDiv.innerHTML = "视频分析失败，请重试";
+        }
+    }
+    
     analyzeCry() {
         // 在实际应用中，这里会进行音频分析
         // 包括MFCC特征提取、频谱分析等
         // 为演示目的，我们模拟分析过程
         
-        this.resultDiv.innerHTML = "正在分析哭声...";
+        this.resultDiv.innerHTML = "正在分析2分钟音频...";
         
         // 模拟分析延迟
         setTimeout(() => {
@@ -786,8 +894,9 @@ document.addEventListener('DOMContentLoaded', () => {
             <li>点击"开始录音"按钮开始录制2分钟宝宝哭声</li>
             <li>让宝宝自然哭泣，录制完整的2分钟音频</li>
             <li>或者点击"开始实时分析"进行实时哭声分析</li>
-            <li>点击"开启摄像头"打开视频监控（默认使用后置摄像头）</li>
-            <li>点击"分析视频"对当前视频帧进行哭声分析</li>
+            <li>通过下拉菜单选择前置或后置摄像头</li>
+            <li>点击"开启摄像头"打开视频监控</li>
+            <li>点击"开始录像"录制5秒视频并自动分析</li>
             <li>开启摄像头后，系统会每分钟自动分析宝宝行为状态</li>
             <li>系统将综合所有分析结果并提供解决方案</li>
         </ol>
