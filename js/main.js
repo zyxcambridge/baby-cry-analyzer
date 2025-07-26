@@ -26,7 +26,7 @@ class BabyCryAnalyzer {
         this.videoRecordingTimeout = null;
         
         // DOM元素
-        this.toggleCameraBtn = document.getElementById('toggleCameraBtn');
+        this.startRecordingBtn = document.getElementById('startRecordingBtn');
         this.toggleRecordingBtn = document.getElementById('toggleRecordingBtn');
         this.toggleRealtimeBtn = document.getElementById('toggleRealtimeBtn');
         this.cameraSelect = document.getElementById('cameraSelect');
@@ -43,7 +43,7 @@ class BabyCryAnalyzer {
     }
     
     bindEvents() {
-        this.toggleCameraBtn.addEventListener('click', () => this.toggleCamera());
+        this.startRecordingBtn.addEventListener('click', () => this.toggleVideoRecording());
         this.toggleRecordingBtn.addEventListener('click', () => this.toggleRecording());
         this.toggleRealtimeBtn.addEventListener('click', () => this.toggleRealtimeAnalysis());
         this.cameraSelect.addEventListener('change', () => this.handleCameraChange());
@@ -351,15 +351,15 @@ class BabyCryAnalyzer {
         }
     }
     
-    async toggleCamera() {
+    async toggleVideoRecording() {
         if (this.isCameraOn) {
             this.stopCamera();
         } else {
-            await this.startCamera();
+            await this.startCameraAndRecording();
         }
     }
     
-    async startCamera() {
+    async startCameraAndRecording() {
         try {
             // 获取当前选择的摄像头类型
             const facingMode = this.cameraSelect.value;
@@ -380,8 +380,8 @@ class BabyCryAnalyzer {
             this.isCameraOn = true;
             
             // 更新UI状态
-            this.toggleCameraBtn.textContent = "关闭摄像头";
-            this.toggleCameraBtn.classList.add("active");
+            this.startRecordingBtn.textContent = "停止录像";
+            this.startRecordingBtn.classList.add("active");
             
             // 启用行为分析功能
             this.behaviorAnalysisEnabled = true;
@@ -421,8 +421,8 @@ class BabyCryAnalyzer {
         this.isVideoRecording = false;
         
         // 更新UI状态
-        this.toggleCameraBtn.textContent = "开启摄像头";
-        this.toggleCameraBtn.classList.remove("active");
+        this.startRecordingBtn.textContent = "开始录像";
+        this.startRecordingBtn.classList.remove("active");
         this.recordingTimerDiv.style.display = 'none';
         
         // 停止行为分析
