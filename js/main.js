@@ -14,6 +14,8 @@ class BabyCryAnalyzer {
         this.realtimeResults = [];
         this.videoAnalysisResult = null;
         this.capturedVideoFrame = null;
+        this.videoAnalysisInterval = null;
+        this.behaviorAnalysisEnabled = false;
         
         // DOM元素
         this.startBtn = document.getElementById('startBtn');
@@ -129,6 +131,7 @@ class BabyCryAnalyzer {
             
             // 更新状态
             this.isRealtimeAnalyzing = true;
+            this.realtimeResults = []; // 清空之前的实时分析结果
             
             // 更新UI状态
             this.startRealtimeBtn.disabled = true;
@@ -273,7 +276,6 @@ class BabyCryAnalyzer {
             
             // 更新实时结果显示
             this.realtimeResultDiv.innerHTML = `
-                <h3>实时分析结果</h3>
                 <p>${this.realtimeResults.join('')}</p>
             `;
         }
@@ -281,19 +283,225 @@ class BabyCryAnalyzer {
     
     async startVideo() {
         try {
-            this.videoStream = await navigator.mediaDevices.getUserMedia({ 
-                video: true, 
-                audio: false 
-            });
+            // 设置约束条件，优先使用后置摄像头
+            const constraints = {
+                video: {
+                    facingMode: { ideal: "environment" }, // 优先使用后置摄像头
+                    width: { ideal: 1280 },
+                    height: { ideal: 720 }
+                },
+                audio: false
+            };
+            
+            this.videoStream = await navigator.mediaDevices.getUserMedia(constraints);
             
             this.video.srcObject = this.videoStream;
             this.startVideoBtn.textContent = "摄像头已开启";
             this.startVideoBtn.disabled = true;
             this.analyzeVideoBtn.disabled = false;
+            
+            // 启用行为分析功能
+            this.behaviorAnalysisEnabled = true;
+            this.startBehaviorAnalysis();
         } catch (error) {
             console.error("获取视频权限失败:", error);
-            this.resultDiv.innerHTML = "无法访问摄像头，请检查权限设置";
+            // 如果后置摄像头不可用，尝试使用默认摄像头
+            try {
+                this.videoStream = await navigator.mediaDevices.getUserMedia({ 
+                    video: true, 
+                    audio: false 
+                });
+                
+                this.video.srcObject = this.videoStream;
+                this.startVideoBtn.textContent = "摄像头已开启";
+                this.startVideoBtn.disabled = true;
+                this.analyzeVideoBtn.disabled = false;
+                
+                // 启用行为分析功能
+                this.behaviorAnalysisEnabled = true;
+                this.startBehaviorAnalysis();
+            } catch (fallbackError) {
+                console.error("获取任何摄像头权限都失败:", fallbackError);
+                this.resultDiv.innerHTML = "无法访问摄像头，请检查权限设置";
+            }
         }
+    }
+    
+    startBehaviorAnalysis() {
+        // 每分钟进行一次行为分析
+        this.videoAnalysisInterval = setInterval(() => {
+            if (this.behaviorAnalysisEnabled) {
+                this.analyzeBabyBehavior();
+            }
+        }, 60000); // 每60秒执行一次
+    }
+    
+    stopBehaviorAnalysis() {
+        if (this.videoAnalysisInterval) {
+            clearInterval(this.videoAnalysisInterval);
+            this.videoAnalysisInterval = null;
+        }
+        this.behaviorAnalysisEnabled = false;
+    }
+    
+    async analyzeBabyBehavior() {
+        if (!this.video.srcObject) {
+            return;
+        }
+        
+        try {
+            // 创建canvas来捕获当前视频帧
+            const canvas = document.createElement('canvas');
+            canvas.width = this.video.videoWidth;
+            canvas.height = this.video.videoHeight;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(this.video, 0, 0, canvas.width, canvas.height);
+            
+            // 将图像转换为blob
+            const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.8));
+            this.capturedVideoFrame = blob;
+            
+            // 发送到阿里云视觉分析服务进行行为分析
+            await this.sendToAliyunVLModelForBehavior(blob);
+        } catch (error) {
+            console.error("行为分析失败:", error);
+        }
+    }
+    
+    async sendToAliyunVLModelForBehavior(imageBlob) {
+        try {
+            const API_KEY = "sk-e84b9c85f2db40f7a8c9a0fba43fe3de";
+            
+            // 将blob转换为base64
+            const base64Image = await this.blobToBase64(imageBlob);
+            
+            // 构造请求消息
+            const messages = [
+                {
+                    role: "user",
+                    content: [
+                        {
+                            image: base64Image
+                        },
+                        {
+                            text: "请分析这张婴儿照片，判断婴儿当前的行为状态和意图（如玩耍、睡觉、不安、寻找物品等），不需要判断是否在哭泣。请以简洁的方式描述婴儿的行为状态和可能的意图，并在需要时给出适当的建议。"
+                        }
+                    ]
+                }
+            ];
+            
+            // 构造请求体
+            const requestBody = {
+                model: "qwen-vl-max",
+                input: {
+                    messages: messages
+                },
+                parameters: {
+                    generation_config: {
+                        max_tokens: 1024,
+                        temperature: 0.7
+                    }
+                }
+            };
+            
+            // 发送请求到阿里云DashScope API
+            const response = await fetch("https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions", {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${API_KEY}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(requestBody)
+            });
+            
+            if (!response.ok) {
+                throw new Error(`API请求失败: ${response.status} ${response.statusText}`);
+            }
+            
+            const data = await response.json();
+            
+            if (data.choices && data.choices.length > 0) {
+                const resultText = data.choices[0].message.content;
+                
+                // 显示弹框提示
+                this.showBehaviorAnalysisPopup(resultText);
+            } else {
+                throw new Error("API返回数据格式不正确");
+            }
+        } catch (error) {
+            console.error("调用阿里云视觉分析API失败:", error);
+        }
+    }
+    
+    showBehaviorAnalysisPopup(analysisResult) {
+        // 创建弹框元素
+        const popup = document.createElement('div');
+        popup.id = 'behavior-analysis-popup';
+        popup.innerHTML = `
+            <div class="popup-content">
+                <h3>婴儿行为分析</h3>
+                <p>${analysisResult}</p>
+                <button id="close-popup">关闭</button>
+            </div>
+        `;
+        
+        // 添加样式
+        popup.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            width: 300px;
+            background-color: #ffffff;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            padding: 15px;
+            z-index: 1000;
+            font-family: Arial, sans-serif;
+        `;
+        
+        popup.querySelector('.popup-content').style.cssText = `
+            margin: 0;
+            padding: 0;
+        `;
+        
+        popup.querySelector('h3').style.cssText = `
+            margin-top: 0;
+            color: #2c3e50;
+            font-size: 1.2em;
+        `;
+        
+        popup.querySelector('p').style.cssText = `
+            font-size: 0.9em;
+            line-height: 1.5;
+            color: #333;
+        `;
+        
+        const closeBtn = popup.querySelector('#close-popup');
+        closeBtn.style.cssText = `
+            margin-top: 10px;
+            padding: 5px 10px;
+            background-color: #4e89ae;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        `;
+        
+        // 添加关闭事件
+        closeBtn.addEventListener('click', () => {
+            document.body.removeChild(popup);
+        });
+        
+        // 添加到页面
+        document.body.appendChild(popup);
+        
+        // 5秒后自动关闭
+        setTimeout(() => {
+            if (document.body.contains(popup)) {
+                document.body.removeChild(popup);
+            }
+        }, 5000);
     }
     
     async analyzeVideoFrame() {
@@ -331,13 +539,16 @@ class BabyCryAnalyzer {
             // 准备请求数据
             const formData = new FormData();
             
+            // 将blob转换为base64
+            const base64Image = await this.blobToBase64(imageBlob);
+            
             // 构造请求消息
             const messages = [
                 {
                     role: "user",
                     content: [
                         {
-                            image: URL.createObjectURL(imageBlob)
+                            image: base64Image
                         },
                         {
                             text: "请分析这张婴儿照片，判断婴儿是否在哭泣，如果在哭泣，请分析可能的原因（如饥饿、困倦、不适、疼痛或尿湿等），并提供相应的解决方案。请以结构化格式返回结果，包括：1) 是否在哭泣，2) 哭泣可能的原因，3) 建议的解决方案。"
@@ -359,20 +570,6 @@ class BabyCryAnalyzer {
                     }
                 }
             };
-            
-            // 添加 blobToBase64 方法转换图片数据
-            blobToBase64(blob) {
-                return new Promise((resolve, reject) => {
-                    const reader = new FileReader();
-                    reader.onloadend = () => {
-                        // 移除"data:*/*;base64,"前缀
-                        const base64data = reader.result.split(',')[1];
-                        resolve(base64data);
-                    };
-                    reader.onerror = reject;
-                    reader.readAsDataURL(blob);
-                });
-            }
             
             // 发送请求到阿里云DashScope API
             const response = await fetch("https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions", {
@@ -396,7 +593,6 @@ class BabyCryAnalyzer {
                 
                 // 更新视频分析结果显示
                 this.videoAnalysisResultDiv.innerHTML = `
-                    <h3>视频分析结果</h3>
                     <p>${resultText}</p>
                 `;
             } else {
@@ -406,6 +602,19 @@ class BabyCryAnalyzer {
             console.error("调用阿里云视觉分析API失败:", error);
             this.videoAnalysisResultDiv.innerHTML = "视频分析失败，请稍后重试";
         }
+    }
+    
+    blobToBase64(blob) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                // 移除"data:*/*;base64,"前缀
+                const base64data = reader.result.split(',')[1];
+                resolve(base64data);
+            };
+            reader.onerror = reject;
+            reader.readAsDataURL(blob);
+        });
     }
     
     combineAnalysisResults() {
@@ -566,8 +775,9 @@ document.addEventListener('DOMContentLoaded', () => {
             <li>让宝宝自然哭泣，录制几秒钟音频</li>
             <li>点击"停止录音"按钮结束录制并开始分析</li>
             <li>或者点击"开始实时分析"进行实时哭声分析</li>
-            <li>点击"开启摄像头"打开视频监控</li>
+            <li>点击"开启摄像头"打开视频监控（默认使用后置摄像头）</li>
             <li>点击"分析视频"对当前视频帧进行分析</li>
+            <li>开启摄像头后，系统会每分钟自动分析宝宝行为状态</li>
             <li>系统将综合分析结果并提供解决方案</li>
         </ol>
         <p>为了获得最佳分析效果，请在光线充足且安静的环境中使用</p>
