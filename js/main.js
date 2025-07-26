@@ -258,7 +258,6 @@ class BabyCryAnalyzer {
             
             // 更新实时结果显示
             this.realtimeResultDiv.innerHTML = `
-                <h3>实时分析结果</h3>
                 <p>${this.realtimeResults.join('')}</p>
             `;
         } else if (data.type === "response.audio.delta") {
@@ -360,6 +359,20 @@ class BabyCryAnalyzer {
                     }
                 }
             };
+            
+            // 添加 blobToBase64 方法转换图片数据
+            blobToBase64(blob) {
+                return new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onloadend = () => {
+                        // 移除"data:*/*;base64,"前缀
+                        const base64data = reader.result.split(',')[1];
+                        resolve(base64data);
+                    };
+                    reader.onerror = reject;
+                    reader.readAsDataURL(blob);
+                });
+            }
             
             // 发送请求到阿里云DashScope API
             const response = await fetch("https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions", {
