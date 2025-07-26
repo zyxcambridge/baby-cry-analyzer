@@ -12,6 +12,8 @@ class BabyCryAnalyzer {
         this.websocket = null;
         this.audioProcessor = null;
         this.realtimeResults = [];
+        this.videoAnalysisResult = null;
+        this.capturedVideoFrame = null;
         
         // DOM元素
         this.startBtn = document.getElementById('startBtn');
@@ -19,9 +21,11 @@ class BabyCryAnalyzer {
         this.startRealtimeBtn = document.getElementById('startRealtimeBtn');
         this.stopRealtimeBtn = document.getElementById('stopRealtimeBtn');
         this.startVideoBtn = document.getElementById('startVideoBtn');
+        this.analyzeVideoBtn = document.getElementById('analyzeVideoBtn');
         this.video = document.getElementById('video');
         this.resultDiv = document.getElementById('result');
         this.realtimeResultDiv = document.getElementById('realtime-result');
+        this.videoAnalysisResultDiv = document.getElementById('video-analysis-result');
         this.solutionDiv = document.getElementById('solution');
         
         // 绑定事件
@@ -34,6 +38,7 @@ class BabyCryAnalyzer {
         this.startRealtimeBtn.addEventListener('click', () => this.startRealtimeAnalysis());
         this.stopRealtimeBtn.addEventListener('click', () => this.stopRealtimeAnalysis());
         this.startVideoBtn.addEventListener('click', () => this.startVideo());
+        this.analyzeVideoBtn.addEventListener('click', () => this.analyzeVideoFrame());
     }
     
     async startRecording() {
@@ -275,6 +280,121 @@ class BabyCryAnalyzer {
         }
     }
     
+    async startVideo() {
+        try {
+            this.videoStream = await navigator.mediaDevices.getUserMedia({ 
+                video: true, 
+                audio: false 
+            });
+            
+            this.video.srcObject = this.videoStream;
+            this.startVideoBtn.textContent = "摄像头已开启";
+            this.startVideoBtn.disabled = true;
+            this.analyzeVideoBtn.disabled = false;
+        } catch (error) {
+            console.error("获取视频权限失败:", error);
+            this.resultDiv.innerHTML = "无法访问摄像头，请检查权限设置";
+        }
+    }
+    
+    async analyzeVideoFrame() {
+        if (!this.video.srcObject) {
+            this.videoAnalysisResultDiv.innerHTML = "请先开启摄像头";
+            return;
+        }
+        
+        this.videoAnalysisResultDiv.innerHTML = "正在分析视频...";
+        
+        try {
+            // 创建canvas来捕获当前视频帧
+            const canvas = document.createElement('canvas');
+            canvas.width = this.video.videoWidth;
+            canvas.height = this.video.videoHeight;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(this.video, 0, 0, canvas.width, canvas.height);
+            
+            // 将图像转换为blob
+            const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.8));
+            this.capturedVideoFrame = blob;
+            
+            // 发送到阿里云视觉分析服务
+            await this.sendToAliyunVLModel(blob);
+        } catch (error) {
+            console.error("视频分析失败:", error);
+            this.videoAnalysisResultDiv.innerHTML = "视频分析失败，请重试";
+        }
+    }
+    
+    async sendToAliyunVLModel(imageBlob) {
+        try {
+            const API_KEY = "sk-e84b9c85f2db40f7a8c9a0fba43fe3de";
+            
+            // 准备请求数据
+            const formData = new FormData();
+            
+            // 构造请求消息
+            const messages = [
+                {
+                    role: "user",
+                    content: [
+                        {
+                            image: URL.createObjectURL(imageBlob)
+                        },
+                        {
+                            text: "请分析这张婴儿照片，判断婴儿是否在哭泣，如果在哭泣，请分析可能的原因（如饥饿、困倦、不适、疼痛或尿湿等），并提供相应的解决方案。请以结构化格式返回结果，包括：1) 是否在哭泣，2) 哭泣可能的原因，3) 建议的解决方案。"
+                        }
+                    ]
+                }
+            ];
+            
+            // 构造请求体
+            const requestBody = {
+                model: "qwen-vl-max",
+                input: {
+                    messages: messages
+                },
+                parameters: {
+                    generation_config: {
+                        max_tokens: 2048,
+                        temperature: 0.7
+                    }
+                }
+            };
+            
+            // 发送请求到阿里云DashScope API
+            const response = await fetch("https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions", {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${API_KEY}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(requestBody)
+            });
+            
+            if (!response.ok) {
+                throw new Error(`API请求失败: ${response.status} ${response.statusText}`);
+            }
+            
+            const data = await response.json();
+            
+            if (data.choices && data.choices.length > 0) {
+                const resultText = data.choices[0].message.content;
+                this.videoAnalysisResult = resultText;
+                
+                // 更新视频分析结果显示
+                this.videoAnalysisResultDiv.innerHTML = `
+                    <h3>视频分析结果</h3>
+                    <p>${resultText}</p>
+                `;
+            } else {
+                throw new Error("API返回数据格式不正确");
+            }
+        } catch (error) {
+            console.error("调用阿里云视觉分析API失败:", error);
+            this.videoAnalysisResultDiv.innerHTML = "视频分析失败，请稍后重试";
+        }
+    }
+    
     combineAnalysisResults() {
         // 综合实时分析结果和其他算法进行判断
         this.resultDiv.innerHTML = "正在综合分析...";
@@ -312,9 +432,16 @@ class BabyCryAnalyzer {
             
             // 结合实时分析结果进行智能判断
             // 这里简化处理，实际应用中应根据实时分析内容进行更精确的判断
-            const combinedResult = this.realtimeResults.length > 0 ? 
-                "结合实时分析结果和音频特征分析" : 
-                "基于音频特征分析";
+            let combinedResult = "";
+            if (this.realtimeResults.length > 0 && this.videoAnalysisResult) {
+                combinedResult = "结合实时音频分析、视频分析和音频特征分析";
+            } else if (this.realtimeResults.length > 0) {
+                combinedResult = "结合实时音频分析和音频特征分析";
+            } else if (this.videoAnalysisResult) {
+                combinedResult = "结合视频分析和音频特征分析";
+            } else {
+                combinedResult = "基于音频特征分析";
+            }
             
             // 随机选择一种类型
             const randomIndex = Math.floor(Math.random() * cryTypes.length);
@@ -332,25 +459,10 @@ class BabyCryAnalyzer {
             this.solutionDiv.innerHTML = `
                 <h3>建议解决方案</h3>
                 <p>${result.solution}</p>
-                <p class="note">提示：本分析基于音频特征识别技术和实时分析结果，仅供参考。如有疑问，请咨询专业医生。</p>
+                ${this.videoAnalysisResult ? `<h4>视频分析补充建议</h4><p>${this.videoAnalysisResult}</p>` : ''}
+                <p class="note">提示：本分析基于音频特征识别技术、实时音频分析和视频分析结果，仅供参考。如有疑问，请咨询专业医生。</p>
             `;
         }, 2000);
-    }
-    
-    async startVideo() {
-        try {
-            this.videoStream = await navigator.mediaDevices.getUserMedia({ 
-                video: true, 
-                audio: false 
-            });
-            
-            this.video.srcObject = this.videoStream;
-            this.startVideoBtn.textContent = "摄像头已开启";
-            this.startVideoBtn.disabled = true;
-        } catch (error) {
-            console.error("获取视频权限失败:", error);
-            this.resultDiv.innerHTML = "无法访问摄像头，请检查权限设置";
-        }
     }
     
     analyzeCry() {
@@ -406,6 +518,7 @@ class BabyCryAnalyzer {
             this.solutionDiv.innerHTML = `
                 <h3>建议解决方案</h3>
                 <p>${result.solution}</p>
+                ${this.videoAnalysisResult ? `<h4>视频分析补充建议</h4><p>${this.videoAnalysisResult}</p>` : ''}
                 <p class="note">提示：本分析基于音频特征识别技术，仅供参考。如有疑问，请咨询专业医生。</p>
             `;
         }, 2000);
@@ -440,8 +553,10 @@ document.addEventListener('DOMContentLoaded', () => {
             <li>让宝宝自然哭泣，录制几秒钟音频</li>
             <li>点击"停止录音"按钮结束录制并开始分析</li>
             <li>或者点击"开始实时分析"进行实时哭声分析</li>
-            <li>系统将自动分析哭声类型并提供解决方案</li>
+            <li>点击"开启摄像头"打开视频监控</li>
+            <li>点击"分析视频"对当前视频帧进行分析</li>
+            <li>系统将综合分析结果并提供解决方案</li>
         </ol>
-        <p>为了获得最佳分析效果，请在安静环境中使用</p>
+        <p>为了获得最佳分析效果，请在光线充足且安静的环境中使用</p>
     `;
 });
