@@ -14,13 +14,6 @@
 
     <main>
         <section class="controls">
-            <div class="audio-controls">
-                <button id="startBtn">开始录音</button>
-                <button id="stopBtn" disabled>停止录音</button>
-                <button id="startRealtimeBtn">开始实时分析</button>
-                <button id="stopRealtimeBtn" disabled>停止实时分析</button>
-            </div>
-            
             <div class="video-controls">
                 <video id="video" width="320" height="240" autoplay></video>
                 <div class="camera-controls">
@@ -33,6 +26,13 @@
                     <button id="startVideoRecordingBtn" disabled>开始录像</button>
                 </div>
                 <div id="recordingTimer" class="recording-timer" style="display: none;">录像中... <span id="timerCount">5</span>s</div>
+            </div>
+            
+            <div class="audio-controls">
+                <button id="startBtn">开始录音</button>
+                <button id="stopBtn" disabled>停止录音</button>
+                <button id="startRealtimeBtn">开始实时分析</button>
+                <button id="stopRealtimeBtn" disabled>停止实时分析</button>
             </div>
         </section>
 
@@ -67,6 +67,21 @@
                 <li><strong>疼痛哭声：</strong>突然开始，大声刺耳，常伴有屏气</li>
                 <li><strong>尿湿哭声：</strong>不太连续，音调高低交替</li>
             </ul>
+        </section>
+        
+        <section class="instructions">
+            <h2>使用说明</h2>
+            <ol>
+                <li>通过下拉菜单选择前置或后置摄像头</li>
+                <li>点击"开启摄像头"打开视频监控</li>
+                <li>点击"开始录像"录制5秒视频并自动分析</li>
+                <li>开启摄像头后，系统会每分钟自动分析宝宝行为状态</li>
+                <li>点击"开始录音"按钮开始录制2分钟宝宝哭声</li>
+                <li>让宝宝自然哭泣，录制完整的2分钟音频</li>
+                <li>或者点击"开始实时分析"进行实时哭声分析</li>
+                <li>系统将综合所有分析结果并提供解决方案</li>
+            </ol>
+            <p>为了获得最佳分析效果，请在光线充足且安静的环境中使用</p>
         </section>
     </main>
 

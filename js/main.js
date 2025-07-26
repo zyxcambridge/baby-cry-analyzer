@@ -885,21 +885,4 @@ class BabyCryAnalyzer {
 // 页面加载完成后初始化应用
 document.addEventListener('DOMContentLoaded', () => {
     const analyzer = new BabyCryAnalyzer();
-    
-    // 提示用户使用说明
-    const resultDiv = document.getElementById('result');
-    resultDiv.innerHTML = `
-        <h3>使用说明</h3>
-        <ol>
-            <li>点击"开始录音"按钮开始录制2分钟宝宝哭声</li>
-            <li>让宝宝自然哭泣，录制完整的2分钟音频</li>
-            <li>或者点击"开始实时分析"进行实时哭声分析</li>
-            <li>通过下拉菜单选择前置或后置摄像头</li>
-            <li>点击"开启摄像头"打开视频监控</li>
-            <li>点击"开始录像"录制5秒视频并自动分析</li>
-            <li>开启摄像头后，系统会每分钟自动分析宝宝行为状态</li>
-            <li>系统将综合所有分析结果并提供解决方案</li>
-        </ol>
-        <p>为了获得最佳分析效果，请在光线充足且安静的环境中使用</p>
-    `;
 });
