@@ -126,7 +126,7 @@ class BabyCryAnalyzer {
             
             // 构造请求体
             const requestBody = {
-                model: "qwen-vl-max",
+                model: "qwen-max",
                 input: {
                     messages: messages
                 },
@@ -150,6 +150,7 @@ class BabyCryAnalyzer {
             
             if (!response.ok) {
                 const errorText = await response.text();
+                console.error(`API请求失败: ${response.status} ${response.statusText} - ${errorText}`);
                 throw new Error(`API请求失败: ${response.status} ${response.statusText} - ${errorText}`);
             }
             
@@ -170,6 +171,8 @@ class BabyCryAnalyzer {
         } catch (error) {
             console.error("调用阿里云音频分析API失败:", error);
             this.audioResult.innerHTML = "音频分析失败，请稍后重试";
+            // 添加详细错误信息
+            this.audioResult.innerHTML += `<br><small>错误详情: ${error.message}</small>`;
         }
     }
     
